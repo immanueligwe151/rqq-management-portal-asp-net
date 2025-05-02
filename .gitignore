@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Firebase secret key
+App_Data/rqq-management-project-firebase-adminsdk-fbsvc-a228a51ee0.json
