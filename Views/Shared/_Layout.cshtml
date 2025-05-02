@@ -3,36 +3,63 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewBag.Title - My ASP.NET Application</title>
+    <title>@ViewBag.Title - RG Management Portal</title>
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
 </head>
 <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                @Html.ActionLink("Application name", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"].ToString();
+    }
+
+    @if (currentController == "Admin")
+    {
+        <nav class="navbar navbar-expand-lg navbar-light bg-info mb-4">
+            <div class="container justify-content-center">
+                <div class="navbar-nav" style="display: flex; flex-direction: row; gap: 25px;">
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/Home">Home</a>
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/CreateAgentAccount">Create Agent Account</a>
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/ViewRequests">View Requests</a>
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/ViewApprovals">View Approvals</a>
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/ViewAgentAccounts">View Agent Accounts</a>
+                    <a class="nav-item nav-link text-white mx-5" href="/Admin/Logout">Log Out</a>
+                </div>
             </div>
-            <div class="navbar-collapse collapse">
-                <ul class="nav navbar-nav">
-                    <li>@Html.ActionLink("Home", "Index", "Home")</li>
-                    <li>@Html.ActionLink("About", "About", "Home")</li>
-                    <li>@Html.ActionLink("Contact", "Contact", "Home")</li>
-                </ul>
+        </nav>
+
+    }
+    else if (currentController == "Agent")
+    {
+        <nav class="navbar navbar-expand-lg navbar-light bg-info mb-4">
+            <div class="container text-center">
+                <div class="navbar-nav mx-auto">
+                    <a class="nav-item nav-link text-white mx-3" href="/Agent/Dashboard">Dashboard</a>
+                    <a class="nav-item nav-link text-white mx-3" href="/Agent/ViewRequests">My Requests</a>
+                    <a class="nav-item nav-link text-white mx-3" href="/Agent/ViewApprovals">My Approvals</a>
+                    <a class="nav-item nav-link text-white mx-3" href="/Agent/Logout">Log Out</a>
+                </div>
             </div>
-        </div>
-    </div>
+        </nav>
+    }
+    else
+    {
+        <nav class="navbar navbar-expand-lg navbar-light bg-info mb-4">
+            <div class="container text-center">
+                <div class="navbar-nav mx-auto">
+                    <a class="nav-item nav-link text-white mx-3" href="/Home/Index">Home</a>
+                    <a class="nav-item nav-link text-white mx-3" href="/Home/About">About</a>
+                    <a class="nav-item nav-link text-white mx-3" href="/Home/Contact">Contact</a>
+                </div>
+            </div>
+        </nav>
+    }
+
+
+
+
     <div class="container body-content">
         @RenderBody()
         <hr />
-        <footer>
-            <p>&copy; @DateTime.Now.Year - My ASP.NET Application</p>
-        </footer>
     </div>
 
     @Scripts.Render("~/bundles/jquery")

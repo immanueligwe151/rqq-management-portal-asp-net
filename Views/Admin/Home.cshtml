@@ -1,7 +1,66 @@
 ﻿
 @{
-    ViewBag.Title = "Home";
+    ViewBag.Title = "Admin Home";
 }
 
-<h2>Home</h2>
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1 class="display-5">Admin Dashboard</h1>
+        <p class="lead">Welcome back. Use the navigation bar above to access admin functions.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Create Agent Account</h5>
+                    <p class="card-text">Register and onboard new agents who can submit requests.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">View Requests</h5>
+                    <p class="card-text">Keep track of all pending agent requests that need attention.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">View Approvals</h5>
+                    <p class="card-text">Review and approve requests submitted by agents.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-4">
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">Platform Summary</div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>Active Agents:</strong> 12</li>
+                        <li><strong>Pending Requests:</strong> 5</li>
+                        <li><strong>Open Approvals:</strong> 3</li>
+                    </ul>
+                    <small class="text-muted">* Data updates every 15 minutes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white">Quick Tips</div>
+                <div class="card-body">
+                    <p class="mb-2">Use the top navigation to move between management tools.</p>
+                    <p class="mb-2">Regularly check for pending requests and unapproved actions.</p>
+                    <p class="text-muted mb-0">For account issues, contact the system developer.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 

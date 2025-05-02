@@ -1,7 +1,78 @@
-﻿
+﻿@model rqq_management_portal_asp_net.Models.CreateAgentAccountViewModel
+
 @{
-    ViewBag.Title = "CreateAgentAccount";
+    ViewBag.Title = "Create Agent Account";
 }
 
-<h2>CreateAgentAccount</h2>
+<div class="container mt-5">
+    <h2>Create Agent Account</h2>
+
+    @using (Html.BeginForm("CreateAgentAccount", "Admin", FormMethod.Post, new { id = "createAccountForm" }))
+    {
+        <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            @Html.TextBoxFor(model => model.Name, new { @class = "form-control", @required = "required", id = "name" })
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email Address</label>
+            @Html.TextBoxFor(model => model.Email, new { @class = "form-control", @required = "required", type = "email", id = "email" })
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="d-flex">
+                @Html.TextBoxFor(model => model.Password, new { @class = "form-control", @readonly = "readonly", id = "password" })
+                <button type="button" class="btn btn-secondary" id="generatePasswordBtn">Generate Password</button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Account Type</label>
+            <div>
+                @Html.RadioButtonFor(model => model.AccountType, "agent", new { @id = "agent", @class = "btn-check", @checked = "checked" })
+                <label class="btn btn-outline-primary" for="agentAccount">Agent Account</label>
+
+                @Html.RadioButtonFor(model => model.AccountType, "admin", new { @id = "admin", @class = "btn-check" })
+                <label class="btn btn-outline-primary" for="adminAccount">Admin Account</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Account</button>
+    }
+
+    @if (ViewBag.Message != null)
+     {
+        <div class="alert alert-success mt-3">
+            <h5>@ViewBag.Message</h5>
+            <ul class="mt-2 mb-0">
+                <li><strong>Name:</strong> @ViewBag.Name</li>
+                <li><strong>Email:</strong> @ViewBag.Email</li>
+                <li><strong>Username:</strong> @ViewBag.Username</li>
+                <li><strong>Password:</strong> @ViewBag.Password</li>
+                <li><strong>Account Type:</strong> @ViewBag.AccountType</li>
+            </ul>
+        </div>
+     }
+</div>
+
+@section Scripts {
+    <script>
+        // generate random password with 9 characters
+        function generateRandomPassword() {
+            const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%^&*";
+            let password = "";
+            for (let i = 0; i < 9; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            return password;
+        }
+
+        // Handle password generation
+        document.getElementById("generatePasswordBtn").addEventListener("click", function () {
+            const generatedPassword = generateRandomPassword();
+            document.getElementById("password").value = generatedPassword;
+        });
+    </script>
+}
 
