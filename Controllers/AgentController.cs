@@ -18,10 +18,15 @@ namespace rqq_management_portal_asp_net.Controllers
         // GET: Agent
         public async Task<ActionResult> Home()
         {
-            string username = Session["AgentUsername"] as string; // obtain stored username in session
-            string agentName = await GetUserDetails(username, "name"); // get the name using the username
-            ViewBag.AgentName = agentName;
-            return View();
+            if (Session["AgentUsername"] != null)
+            {
+                string username = Session["AgentUsername"] as string; // obtain stored username in session
+                string agentName = await GetUserDetails(username, "name"); // get the name using the username
+                ViewBag.AgentName = agentName;
+                return View();
+            }
+
+            return RedirectToAction("Login", "Home");
         }
 
         private async Task<string> GetUserDetails(string username, string detailToRetrieve)

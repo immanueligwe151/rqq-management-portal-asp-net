@@ -10,6 +10,13 @@
         This dashboard provides key information and tools related to your account and assigned tasks.
     </div>
 
+    <p class="lead">Below is a list of all pending requests:</p>
+
+    <div class="container mt-4">
+        <h3>Pending Requests</h3>
+        <div id="pending-requests" class="accordion"></div>
+    </div>
+
     <div class="row mt-4">
         <div class="col-md-6 mb-4">
             <div class="card border-primary shadow-sm">
@@ -60,4 +67,99 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUiL8du5Kcr2qFvGMClaVvi_uKM8xGInA",
+            authDomain: "rqq-management-project.firebaseapp.com",
+            databaseURL: "https://rqq-management-project-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "rqq-management-project",
+            storageBucket: "rqq-management-project.firebasestorage.app",
+            messagingSenderId: "397221027690",
+            appId: "1:397221027690:web:646a65603cc2a72f5e0f13",
+            measurementId: "G-FEP4TNH15D"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const pendingRequestsList = document.getElementById("pending-requests");
+        const username = "@Session["AgentUsername"]"; // safely obtains the username stored in the server-side session variable
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString(); // converts it to a format like "5/1/2025, 8:25:49 PM"
+        }
+
+        const requestsRef = db.ref("requests");
+
+        requestsRef.on("value", (snapshot) => {
+            pendingRequestsList.innerHTML = ""; // clear div of previous elements before updating
+            const data = snapshot.val();
+            let pendingCount = 0;
+
+            if (data) {
+                for (const requestId in data) {
+                    const req = data[requestId];
+                    if (req.status === "pending") {
+                        pendingCount++;
+
+                        const card = document.createElement("div");
+                        card.className = "card mb-2";
+
+                        const cardHeader = `
+                            <div class="card-header" id="heading-${requestId}">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#collapse-${requestId}" aria-expanded="false" aria-controls="collapse-${requestId}">
+                                        Request ID: ${requestId}
+                                    </button>
+                                </h5>
+                            </div>`;
+
+                        const cardBody = `
+                            <div id="collapse-${requestId}" class="collapse" aria-labelledby="heading-${requestId}" data-bs-parent="#pending-requests">
+                                <div class="card-body">
+                                    <p><strong>Client Name:</strong> ${req.from?.name || "N/A"}</p>
+                                    <p><strong>Client Email:</strong> ${req.from?.email || "N/A"}</p>
+                                    <p><strong>Part Number:</strong> ${req.part_number}</p>
+                                    <p><strong>Created At:</strong> ${formatDate(req.created_at)}</p>
+                                    <p><strong>Required When:</strong> ${req.required_when}</p>
+                                    <button class="btn btn-sm btn-primary" onclick="assignToMe('${requestId}')">Assign to me</button>
+                                </div>
+                            </div>`;
+
+                        card.innerHTML = cardHeader + cardBody;
+                        pendingRequestsList.appendChild(card);
+                    }
+                }
+            }
+
+            if (pendingCount === 0) {
+                const noReq = document.createElement("div");
+                noReq.className = "alert alert-info";
+                noReq.innerText = "No new requests.";
+                pendingRequestsList.appendChild(noReq);
+            }
+        });
+
+        function assignToMe(requestId) {
+            const requestRef = db.ref(`requests/${requestId}`);
+            requestRef.update({
+                agent_username: username,
+                assigned_at: new Date().toISOString(),
+                status: "assigned"
+            }).then(() => {
+                alert(`Request ${requestId} has been assigned to you.`);
+            }).catch((error) => {
+                console.error("Assignment error:", error);
+                alert("Failed to assign. Please try again.");
+            });
+        }
+    </script>
+}
+
 
