@@ -7,8 +7,8 @@
         <div class="col-md-6 col-lg-5">
             <div class="card shadow">
                 <div class="card-body p-4">
-                    <h3 class="mb-4 text-center">Agent Login</h3>
-                    <form method="post" action="/Agent/Authenticate"> <!--to come back to this-->
+                    <h3 class="mb-4 text-center">Login</h3>
+                    <form method="post" action="/Home/Login">
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <input type="text" name="username" class="form-control" id="username" placeholder="Enter your username here" required />
@@ -29,6 +29,11 @@
                             <button type="submit" class="btn btn-primary">Login</button>
                         </div>
                     </form>
+
+                    @if (!string.IsNullOrEmpty(ViewBag.Error))
+                    {
+                        <div class="alert alert-danger mt-3">@ViewBag.Error</div>
+                    }
                 </div>
             </div>
             <p class="text-center mt-3 text-muted">&copy; 2025 Rokholt Group</p>

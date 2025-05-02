@@ -326,10 +326,10 @@
     <Content Include="Views\Admin\ViewRequests.cshtml" />
     <Content Include="Views\Admin\ViewApprovals.cshtml" />
     <Content Include="Views\Admin\ViewAgentAccounts.cshtml" />
+    <Content Include="Views\Agent\Home.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Views\Agent\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff2" />
