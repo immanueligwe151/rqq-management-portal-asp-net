@@ -29,6 +29,11 @@ namespace rqq_management_portal_asp_net.Controllers
             return RedirectToAction("Login", "Home");
         }
 
+        public ActionResult AssignedRequests()
+        {
+            return View();
+        }
+
         private async Task<string> GetUserDetails(string username, string detailToRetrieve)
         {
             FirestoreDb db = FirestoreDb.Create(ProjectId);

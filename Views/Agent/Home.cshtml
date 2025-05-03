@@ -95,7 +95,7 @@
             return date.toLocaleString(); // converts it to a format like "5/1/2025, 8:25:49 PM"
         }
 
-        const requestsRef = db.ref("requests");
+        const requestsRef = db.ref("requests"); // realtime database instance
 
         requestsRef.on("value", (snapshot) => {
             pendingRequestsList.innerHTML = ""; // clear div of previous elements before updating
@@ -147,7 +147,7 @@
         });
 
         function assignToMe(requestId) {
-            const requestRef = db.ref(`requests/${requestId}`);
+            const requestRef = db.ref(`requests/${requestId}`); // navigates to the selected request in the database
             requestRef.update({
                 agent_username: username,
                 assigned_at: new Date().toISOString(),

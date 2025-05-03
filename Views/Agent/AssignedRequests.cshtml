@@ -1,0 +1,218 @@
+﻿@{
+    ViewBag.Title = "My Assigned Requests";
+    var username = Session["AgentUsername"] as string;
+}
+
+<div class="container mt-5">
+    <h2 class="mb-4">My Assigned Requests</h2>
+    <div class="row" id="assigned-requests">
+        <p>Loading assigned requests...</p>
+    </div>
+</div>
+
+<!-- Request Detail Modal -->
+<div class="modal fade" id="requestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button id="dropBtn" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#dropReasonModal">Drop Request</button>
+                <button id="processBtn" class="btn btn-success" disabled>Process Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Drop Reason Modal -->
+<div class="modal fade" id="dropReasonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reason for Dropping</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea class="form-control" id="dropReason" rows="3" placeholder="Enter reason..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger" id="submitDrop">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <!-- Bootstrap Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const username = @Html.Raw(Json.Encode(username));
+            console.log("Logged in as:", username);
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyCUiL8du5Kcr2qFvGMClaVvi_uKM8xGInA",
+                authDomain: "rqq-management-project.firebaseapp.com",
+                databaseURL: "https://rqq-management-project-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "rqq-management-project",
+                storageBucket: "rqq-management-project.appspot.com",
+                messagingSenderId: "397221027690",
+                appId: "1:397221027690:web:646a65603cc2a72f5e0f13"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            const storage = firebase.storage();
+            const container = document.getElementById("assigned-requests");
+            let currentRequestId = null;
+            const requestModal = new bootstrap.Modal(document.getElementById("requestModal"));
+
+            function formatDate(dateStr) {
+                return new Date(dateStr).toLocaleString();
+            }
+
+            function loadAssignedRequests() {
+                db.ref("requests").on("value", (snapshot) => {
+                    container.innerHTML = "";
+                    const data = snapshot.val();
+                    let found = false;
+
+                    for (const id in data) {
+                        const req = data[id];
+                        if (req.status === "assigned" && req.agent_username === username) {
+                            found = true;
+                            const card = document.createElement("div");
+                            card.className = "col-md-4 mb-3";
+                            card.innerHTML = `
+                                <div class="card h-100" role="button" onclick="openModal('${id}')">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Request ${id}</h5>
+                                        <p class="card-text"><strong>Created:</strong> ${formatDate(req.created_at)}</p>
+                                        <p class="card-text"><strong>Assigned:</strong> ${formatDate(req.assigned_at)}</p>
+                                    </div>
+                                </div>`;
+                            container.appendChild(card);
+                        }
+                    }
+
+                    if (!found) {
+                        container.innerHTML = "<p>No assigned requests.</p>";
+                    }
+                });
+            }
+
+            window.openModal = function (id) {
+                currentRequestId = id;
+                console.log("Opening modal for request ID:", id);
+                db.ref("requests/" + id).once("value").then((snapshot) => {
+                    const req = snapshot.val();
+                    if (!req) return alert("Request not found.");
+
+                    const progress = req.progress || {};
+                    document.getElementById("modalContent").innerHTML = `
+                        <p><strong>Part Number:</strong> ${req.part_number}</p>
+                        <p><strong>Manufacturer:</strong> ${req.manufacturer}</p>
+                        <p><strong>Quantity:</strong> ${req.quantity}</p>
+                        <p><strong>Required When:</strong> ${req.required_when}</p>
+                        <p><strong>Preferred Condition:</strong> ${req.preferred_condition}</p>
+                        <hr />
+                        <p><strong>Client Name:</strong> ${req.from?.name}</p>
+                        <p><strong>Email:</strong> ${req.from?.email}</p>
+                        <p><strong>Phone:</strong> ${req.from?.phone}</p>
+                        <p><strong>Company:</strong> ${req.from?.company}</p>
+                        <p><strong>Position:</strong> ${req.from?.position}</p>
+                        <hr />
+                        <div id="progress-section">
+                            <h5>Progress Tracker</h5>
+                            ${renderProgressCheckboxes(progress)}
+                        </div>
+                        <hr />
+                        <div><strong>Uploaded Images:</strong><div id="imagePreview"></div></div>
+                    `;
+
+                    loadImages(req.picture_path || "");
+                    updateProcessBtn(progress);
+                    requestModal.show();
+                });
+            };
+
+            function renderProgressCheckboxes(progress) {
+                const stages = ["received", "reviewed", "quoted", "follow_up"];
+                return stages.map((stage, i) => {
+                    const disabled = i === 0 ? "" : (!progress[stages[i - 1]] ? "disabled" : "");
+                    const checked = progress[stage] ? "checked" : "";
+                    return `
+                        <div class="form-check">
+                            <input class="form-check-input progress-checkbox" type="checkbox" id="${stage}" ${checked} ${disabled} onchange="updateProgress('${stage}')">
+                            <label class="form-check-label" for="${stage}">${stage.charAt(0).toUpperCase() + stage.slice(1)}</label>
+                        </div>`;
+                }).join("");
+            }
+
+            window.updateProgress = function (stage) {
+                const updates = {};
+                updates[`progress/${stage}`] = true;
+                db.ref("requests/" + currentRequestId).update(updates).then(() => {
+                    window.openModal(currentRequestId); // Refresh modal
+                });
+            };
+
+            function updateProcessBtn(progress) {
+                const allDone = ["received", "reviewed", "quoted", "follow_up"].every(p => progress[p]);
+                document.getElementById("processBtn").disabled = !allDone;
+            }
+
+            document.getElementById("processBtn").addEventListener("click", () => {
+                db.ref("requests/" + currentRequestId).update({ status: "completed" }).then(() => {
+                    requestModal.hide();
+                });
+            });
+
+            document.getElementById("submitDrop").addEventListener("click", () => {
+                const reason = document.getElementById("dropReason").value.trim();
+                if (!reason) return alert("Reason required.");
+                db.ref("requests/" + currentRequestId).update({
+                    dropped_reason: reason,
+                    drop_pending_approval: true
+                }).then(() => {
+                    bootstrap.Modal.getInstance(document.getElementById("dropReasonModal")).hide();
+                    requestModal.hide();
+                });
+            });
+
+            function loadImages(pathPrefix) {
+                const imagePreview = document.getElementById("imagePreview");
+                imagePreview.innerHTML = "";
+                if (!pathPrefix) return;
+
+                storage.ref(pathPrefix).listAll().then((res) => {
+                    res.items.forEach((itemRef) => {
+                        itemRef.getDownloadURL().then((url) => {
+                            const img = document.createElement("img");
+                            img.src = url;
+                            img.className = "img-thumbnail me-2 mb-2";
+                            img.style.maxWidth = "150px";
+                            imagePreview.appendChild(img);
+                        });
+                    });
+                }).catch(err => {
+                    console.error("Failed to load images", err);
+                });
+            }
+
+            loadAssignedRequests();
+        });
+    </script>
+}

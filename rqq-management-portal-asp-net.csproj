@@ -294,6 +294,8 @@
     <Content Include="protos\google\api\backend.proto" />
     <Content Include="protos\google\api\auth.proto" />
     <Content Include="protos\google\api\annotations.proto" />
+    <Content Include="cors_config\cors.json" />
+    <Content Include="cors_config\empty_cors.json" />
     <None Include="Scripts\jquery-3.4.1.intellisense.js" />
     <Content Include="Scripts\jquery-3.4.1.js" />
     <Content Include="Scripts\jquery-3.4.1.min.js" />
@@ -327,6 +329,7 @@
     <Content Include="Views\Admin\ViewApprovals.cshtml" />
     <Content Include="Views\Admin\ViewAgentAccounts.cshtml" />
     <Content Include="Views\Agent\Home.cshtml" />
+    <Content Include="Views\Agent\AssignedRequests.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
