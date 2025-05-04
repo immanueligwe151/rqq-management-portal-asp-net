@@ -1,6 +1,7 @@
 ﻿
 @{
     ViewBag.Title = "Agent Home";
+    var username = Session["AgentUsermane"] as string;
 }
 
 <div class="container mt-5">
@@ -88,7 +89,7 @@
         const db = firebase.database();
 
         const pendingRequestsList = document.getElementById("pending-requests");
-        const username = "@Session["AgentUsername"]"; // safely obtains the username stored in the server-side session variable
+        const username = @Html.Raw(Json.Encode(username)); // safely obtains the username stored in the server-side session variable
 
         function formatDate(isoString) {
             const date = new Date(isoString);

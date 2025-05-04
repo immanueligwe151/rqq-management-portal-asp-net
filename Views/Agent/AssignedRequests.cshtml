@@ -3,6 +3,88 @@
     var username = Session["AgentUsername"] as string;
 }
 
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+    }
+
+    .modal-dialog {
+        margin: 15% auto;
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .close {
+        font-size: 1.5rem;
+        font-weight: 900;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: black;
+    }
+
+    .modal-footer {
+        padding-top: 10px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .modal-body {
+        padding: 20px 0;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+
 <div class="container mt-5">
     <h2 class="mb-4">My Assigned Requests</h2>
     <div class="row" id="assigned-requests">
@@ -11,18 +93,18 @@
 </div>
 
 <!-- Request Detail Modal -->
-<div class="modal fade" id="requestModal" tabindex="-1" aria-hidden="true">
+<div id="requestModal" class="modal">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Request Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="close" onclick="closeModal('requestModal')">&times;</button>
             </div>
             <div class="modal-body" id="modalContent">
                 <!-- Dynamic content -->
             </div>
             <div class="modal-footer">
-                <button id="dropBtn" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#dropReasonModal">Drop Request</button>
+                <button id="dropBtn" class="btn btn-danger" onclick="openDropReasonModal()">Drop Request</button>
                 <button id="processBtn" class="btn btn-success" disabled>Process Request</button>
             </div>
         </div>
@@ -30,18 +112,18 @@
 </div>
 
 <!-- Drop Reason Modal -->
-<div class="modal fade" id="dropReasonModal" tabindex="-1" aria-hidden="true">
+<div id="dropReasonModal" class="modal">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Reason for Dropping</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="close" onclick="closeModal('dropReasonModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <textarea class="form-control" id="dropReason" rows="3" placeholder="Enter reason..."></textarea>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-secondary" onclick="closeModal('dropReasonModal')">Cancel</button>
                 <button class="btn btn-danger" id="submitDrop">Submit</button>
             </div>
         </div>
@@ -53,9 +135,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
-    <!-- Bootstrap Bundle (includes Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -74,10 +153,8 @@
 
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database();
-            const storage = firebase.storage();
             const container = document.getElementById("assigned-requests");
             let currentRequestId = null;
-            const requestModal = new bootstrap.Modal(document.getElementById("requestModal"));
 
             function formatDate(dateStr) {
                 return new Date(dateStr).toLocaleString();
@@ -95,10 +172,14 @@
                             found = true;
                             const card = document.createElement("div");
                             card.className = "col-md-4 mb-3";
+
                             card.innerHTML = `
                                 <div class="card h-100" role="button" onclick="openModal('${id}')">
                                     <div class="card-body">
                                         <h5 class="card-title">Request ${id}</h5>
+                                        ${req.drop_pending_approval ?
+                                            `<h4 class="card-title bg-danger text-white p-3 mb-3 mt-3 border border-danger">Drop Pending Approval</h4>`
+                                            : ''}
                                         <p class="card-text"><strong>Created:</strong> ${formatDate(req.created_at)}</p>
                                         <p class="card-text"><strong>Assigned:</strong> ${formatDate(req.assigned_at)}</p>
                                     </div>
@@ -144,7 +225,7 @@
 
                     loadImages(req.picture_path || "");
                     updateProcessBtn(progress);
-                    requestModal.show();
+                    openModalBox('requestModal');
                 });
             };
 
@@ -176,7 +257,7 @@
 
             document.getElementById("processBtn").addEventListener("click", () => {
                 db.ref("requests/" + currentRequestId).update({ status: "completed" }).then(() => {
-                    requestModal.hide();
+                    closeModal('requestModal');
                 });
             });
 
@@ -187,32 +268,100 @@
                     dropped_reason: reason,
                     drop_pending_approval: true
                 }).then(() => {
-                    bootstrap.Modal.getInstance(document.getElementById("dropReasonModal")).hide();
-                    requestModal.hide();
+                    closeModal('dropReasonModal');
+                    closeModal('requestModal');
                 });
             });
 
-            function loadImages(pathPrefix) {
-                const imagePreview = document.getElementById("imagePreview");
-                imagePreview.innerHTML = "";
-                if (!pathPrefix) return;
+            function loadImages(path) {
+                alert(path);
+                $.ajax({
+                    url: '/Agent/GetImages',
+                    type: 'GET',
+                    data: { path: path },
+                    success: function (data) {
+                        const container = document.getElementById('imagePreview');
+                        container.innerHTML = '';
 
-                storage.ref(pathPrefix).listAll().then((res) => {
-                    res.items.forEach((itemRef) => {
-                        itemRef.getDownloadURL().then((url) => {
-                            const img = document.createElement("img");
-                            img.src = url;
-                            img.className = "img-thumbnail me-2 mb-2";
-                            img.style.maxWidth = "150px";
-                            imagePreview.appendChild(img);
-                        });
-                    });
-                }).catch(err => {
-                    console.error("Failed to load images", err);
+                        if (data.error) {
+                            container.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                            return;
+                        }
+
+                        if (data.length === 0) {
+                            container.innerHTML = "<p>No images found.</p>";
+                        } else {
+                            data.forEach(function (url) {
+                                const img = document.createElement('img');
+                                img.src = url;
+                                alert(url);
+                                img.alt = 'Uploaded Image';
+                                img.style.maxWidth = '200px';
+                                img.style.margin = '10px';
+                                container.appendChild(img);
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        document.getElementById('image-container').innerHTML = `<p style="color: red;">Request failed: ${error}</p>`;
+                    }
                 });
             }
 
+            /*function loadImages(pathPrefix) {
+                const imagePreview = document.getElementById("imagePreview");
+                imagePreview.innerHTML = "";  // Clear previous images
+
+                if (!pathPrefix) return;
+
+                // Construct the URL to fetch the list of image URLs from the backend
+                const imagePath = `/Agent/GetImages?filePath=${encodeURIComponent(pathPrefix)}`;
+
+                // Fetch the list of image URLs from the backend
+                fetch(imagePath)
+                    .then(response => response.text())  // Use .text() instead of .json() to inspect the raw response
+                    .then(responseText => {
+                        console.log("Raw response:", responseText);  // Log the response
+
+                        try {
+                            const imageUrls = JSON.parse(responseText);  // Try parsing manually
+                            if (imageUrls.length === 0) {
+                                imagePreview.innerHTML = "No images found.";
+                                return;
+                            }
+
+                            imageUrls.forEach(url => {
+                                const img = document.createElement("img");
+                                img.src = url;
+                                img.className = "img-thumbnail me-2 mb-2";
+                                img.style.maxWidth = "150px";
+                                imagePreview.appendChild(img);
+                            });
+                        } catch (error) {
+                            console.error("Error parsing JSON:", error);
+                            imagePreview.innerHTML = "Failed to load images.";
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error loading images:", error);
+                        imagePreview.innerHTML = "Failed to load images.";
+                    });
+
+            }*/
+
             loadAssignedRequests();
         });
+
+        function openModalBox(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function openDropReasonModal() {
+            openModalBox('dropReasonModal');
+        }
     </script>
 }

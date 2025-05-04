@@ -56,6 +56,7 @@ namespace rqq_management_portal_asp_net.Controllers
             // set session variables for logged-in admin
             Session["AdminToken"] = token;
             Session["AdminEmail"] = email;
+            Session["AdminUsername"] = username;
             return RedirectToAction("Home", "Admin"); // redirect to admin home  after successful login
         }
 
