@@ -1,7 +1,7 @@
-﻿
+﻿﻿
 @{
     ViewBag.Title = "Agent Home";
-    var username = Session["AgentUsermane"] as string;
+    var username = Session["AgentUsername"] as string;
 }
 
 <div class="container mt-5">
@@ -90,6 +90,7 @@
 
         const pendingRequestsList = document.getElementById("pending-requests");
         const username = @Html.Raw(Json.Encode(username)); // safely obtains the username stored in the server-side session variable
+        alert(username);
 
         function formatDate(isoString) {
             const date = new Date(isoString);
@@ -162,5 +163,3 @@
         }
     </script>
 }
-
-

@@ -1,7 +1,102 @@
-﻿
-@{
-    ViewBag.Title = "ViewApprovals";
+﻿@{
+    ViewBag.Title = "Drop Approvals";
+    <script>
+        const agents = @Html.Raw(ViewBag.AgentData);
+    </script>
 }
 
-<h2>ViewApprovals</h2>
+<div class="container mt-5">
+    <h2 class="mb-4">Drop Request Approvals</h2>
+    <div id="drop-requests" class="mt-4"></div>
+</div>
 
+@section Scripts {
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUiL8du5Kcr2qFvGMClaVvi_uKM8xGInA",
+            authDomain: "rqq-management-project.firebaseapp.com",
+            databaseURL: "https://rqq-management-project-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "rqq-management-project",
+            storageBucket: "rqq-management-project.firebasestorage.app",
+            messagingSenderId: "397221027690",
+            appId: "1:397221027690:web:646a65603cc2a72f5e0f13",
+            measurementId: "G-FEP4TNH15D"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const dropRequestsDiv = document.getElementById("drop-requests");
+
+        function loadDropRequests() {
+            const requestsRef = db.ref("requests");
+
+            requestsRef.once("value", snapshot => {
+                const data = snapshot.val();
+                dropRequestsDiv.innerHTML = "";
+
+                if (!data) {
+                    dropRequestsDiv.innerHTML = "<div class='alert alert-info'>No drop requests pending approval.</div>";
+                    return;
+                }
+
+                Object.entries(data).forEach(([requestId, req]) => {
+                    if (req.drop_pending_approval) {
+                        const card = document.createElement("div");
+                        card.className = "card mb-3 shadow-sm";
+
+                        const agent = agents.find(a => a.Username === req.agent_username);
+                        //const agentName = req.agent_username ?? "Unknown";
+
+                        card.innerHTML = `
+                            <div class="card-header">
+                                <h5 class="mb-0">Drop requested for ${requestId}</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>${agent.Name}</strong> has requested to drop this request.</p>
+                                <p><strong>Reason:</strong> ${req.dropped_reason ?? "No reason provided."}</p>
+                                <button class="btn btn-success me-2" onclick="approveDrop('${requestId}')">Accept Drop</button>
+                                <button class="btn btn-danger" onclick="rejectDrop('${requestId}')">Reject Drop</button>
+                            </div>
+                        `;
+
+                        dropRequestsDiv.appendChild(card);
+                    }
+                });
+            });
+        }
+
+        function approveDrop(requestId) {
+            const requestRef = db.ref(`requests/${requestId}`);
+            requestRef.update({
+                drop_pending_approval: false,
+                agent_username: null,
+                assigned_at: null,
+                status: "pending"
+            }).then(() => {
+                alert(`Request ${requestId} has been reset to pending.`);
+                loadDropRequests();
+            }).catch(error => {
+                console.error("Error approving drop:", error);
+                alert("Failed to approve drop.");
+            });
+        }
+
+        function rejectDrop(requestId) {
+            const requestRef = db.ref(`requests/${requestId}`);
+            requestRef.update({
+                drop_pending_approval: false
+            }).then(() => {
+                alert(`Drop request for request ${requestId} has been rejected.`);
+                loadDropRequests();
+            }).catch(error => {
+                console.error("Error rejecting drop:", error);
+                alert("Failed to reject drop.");
+            });
+        }
+
+        loadDropRequests();
+    </script>
+}

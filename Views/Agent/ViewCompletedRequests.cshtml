@@ -1,5 +1,5 @@
 ﻿@{
-    ViewBag.Title = "My Assigned Requests";
+    ViewBag.Title = "View Completed Requests";
     var username = Session["AgentUsername"] as string;
 }
 
@@ -86,9 +86,9 @@
 </style>
 
 <div class="container mt-5">
-    <h2 class="mb-4">My Assigned Requests</h2>
+    <h2 class="mb-4">View Completed Requests</h2>
     <div class="row" id="assigned-requests">
-        <p>Loading assigned requests...</p>
+        <p>Loading completed requests...</p>
     </div>
 </div>
 
@@ -102,29 +102,6 @@
             </div>
             <div class="modal-body" id="modalContent">
                 <!-- Dynamic content -->
-            </div>
-            <div class="modal-footer">
-                <button id="dropBtn" class="btn btn-danger" onclick="openDropReasonModal()">Drop Request</button>
-                <button id="processBtn" class="btn btn-success" disabled>Process Request</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Drop Reason Modal -->
-<div id="dropReasonModal" class="modal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Reason for Dropping</h5>
-                <button type="button" class="close" onclick="closeModal('dropReasonModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <textarea class="form-control" id="dropReason" rows="3" placeholder="Enter reason..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('dropReasonModal')">Cancel</button>
-                <button class="btn btn-danger" id="submitDrop">Submit</button>
             </div>
         </div>
     </div>
@@ -168,7 +145,7 @@
 
                     for (const id in data) {
                         const req = data[id];
-                        if (req.status === "assigned" && req.agent_username === username) {
+                        if (req.status === "completed" && req.agent_username === username) {
                             found = true;
                             const card = document.createElement("div");
                             card.className = "col-md-4 mb-3";
@@ -177,11 +154,9 @@
                                 <div class="card h-100" role="button" onclick="openModal('${id}')">
                                     <div class="card-body">
                                         <h5 class="card-title">Request ${id}</h5>
-                                        ${req.drop_pending_approval ?
-                                            `<h4 class="card-title bg-danger text-white p-3 mb-3 mt-3 border border-danger">Drop Pending Approval</h4>`
-                                            : ''}
                                         <p class="card-text"><strong>Created:</strong> ${formatDate(req.created_at)}</p>
                                         <p class="card-text"><strong>Assigned:</strong> ${formatDate(req.assigned_at)}</p>
+                                        <p class="card-text"><strong>Completed:</strong> ${formatDate(req.completed_at)}</p>
                                     </div>
                                 </div>`;
                             container.appendChild(card);
@@ -189,7 +164,7 @@
                     }
 
                     if (!found) {
-                        container.innerHTML = "<p>No assigned requests.</p>";
+                        container.innerHTML = "<p>No completed requests.</p>";
                     }
                 });
             }
@@ -225,7 +200,6 @@
                     `;
 
                     loadImages(req.picture_path || "");
-                    updateProcessBtn(progress);
                     openModalBox('requestModal');
                 });
             };
@@ -243,36 +217,8 @@
                 }).join("");
             }
 
-            window.updateProgress = function (stage) {
-                const updates = {};
-                updates[`progress/${stage}`] = true;
-                db.ref("requests/" + currentRequestId).update(updates).then(() => {
-                    window.openModal(currentRequestId); // Refresh modal
-                });
-            };
 
-            function updateProcessBtn(progress) {
-                const allDone = ["received", "reviewed", "quoted", "follow_up"].every(p => progress[p]);
-                document.getElementById("processBtn").disabled = !allDone;
-            }
-
-            document.getElementById("processBtn").addEventListener("click", () => {
-                db.ref("requests/" + currentRequestId).update({ status: "completed", completed_at: new Date().toISOString() }).then(() => {
-                    closeModal('requestModal');
-                });
-            });
-
-            document.getElementById("submitDrop").addEventListener("click", () => {
-                const reason = document.getElementById("dropReason").value.trim();
-                if (!reason) return alert("Reason required.");
-                db.ref("requests/" + currentRequestId).update({
-                    dropped_reason: reason,
-                    drop_pending_approval: true
-                }).then(() => {
-                    closeModal('dropReasonModal');
-                    closeModal('requestModal');
-                });
-            });
+            
 
             function loadImages(path) {
                 alert(path);
@@ -309,47 +255,6 @@
                 });
             }
 
-            /*function loadImages(pathPrefix) {
-                const imagePreview = document.getElementById("imagePreview");
-                imagePreview.innerHTML = "";  // Clear previous images
-
-                if (!pathPrefix) return;
-
-                // Construct the URL to fetch the list of image URLs from the backend
-                const imagePath = `/Agent/GetImages?filePath=${encodeURIComponent(pathPrefix)}`;
-
-                // Fetch the list of image URLs from the backend
-                fetch(imagePath)
-                    .then(response => response.text())  // Use .text() instead of .json() to inspect the raw response
-                    .then(responseText => {
-                        console.log("Raw response:", responseText);  // Log the response
-
-                        try {
-                            const imageUrls = JSON.parse(responseText);  // Try parsing manually
-                            if (imageUrls.length === 0) {
-                                imagePreview.innerHTML = "No images found.";
-                                return;
-                            }
-
-                            imageUrls.forEach(url => {
-                                const img = document.createElement("img");
-                                img.src = url;
-                                img.className = "img-thumbnail me-2 mb-2";
-                                img.style.maxWidth = "150px";
-                                imagePreview.appendChild(img);
-                            });
-                        } catch (error) {
-                            console.error("Error parsing JSON:", error);
-                            imagePreview.innerHTML = "Failed to load images.";
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error loading images:", error);
-                        imagePreview.innerHTML = "Failed to load images.";
-                    });
-
-            }*/
-
             loadAssignedRequests();
         });
 
@@ -360,9 +265,6 @@
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
         }
-
-        function openDropReasonModal() {
-            openModalBox('dropReasonModal');
-        }
     </script>
 }
+

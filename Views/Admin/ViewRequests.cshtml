@@ -1,7 +1,348 @@
 ﻿
 @{
-    ViewBag.Title = "ViewRequests";
+    ViewBag.Title = "View Requests";
+    <script>
+        const agents = @Html.Raw(ViewBag.AgentData);
+    </script>
 }
 
-<h2>ViewRequests</h2>
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+    }
+
+    .modal-dialog {
+        margin: 15% auto;
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .close {
+        font-size: 1.5rem;
+        font-weight: 900;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: black;
+    }
+
+    .modal-footer {
+        padding-top: 10px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .modal-body {
+        padding: 20px 0;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+
+<div class="container mt-5">
+    <h2 class="mb-4">Request Management</h2>
+    <div>
+        <select id="requestStatusSelect" class="form-control mb-4" onchange="loadRequests()">
+            <option value="" disabled selected>Select an option</option>
+            <option value="assigned">Assigned Requests</option>
+            <option value="pending">New Requests</option>
+            <option value="completed">Completed Requests</option>
+        </select>
+    </div>
+
+    <div class="row" id="requestsContainer">
+        <p>Loading requests...</p>
+    </div>
+</div>
+
+<!-- Request Detail Modal -->
+<div id="requestModal" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="request-details-h5">Request Details</h5>
+                <button type="button" class="close" onclick="closeModal('requestModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUiL8du5Kcr2qFvGMClaVvi_uKM8xGInA",
+            authDomain: "rqq-management-project.firebaseapp.com",
+            databaseURL: "https://rqq-management-project-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "rqq-management-project",
+            storageBucket: "rqq-management-project.firebasestorage.app",
+            messagingSenderId: "397221027690",
+            appId: "1:397221027690:web:646a65603cc2a72f5e0f13",
+            measurementId: "G-FEP4TNH15D"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Function to load requests based on selected status
+        function loadRequests() {
+            const status = document.getElementById('requestStatusSelect').value;
+            const requestsContainer = document.getElementById('requestsContainer');
+            requestsContainer.innerHTML = '<p>Loading requests...</p>';
+
+            // Fetch requests from Firebase based on status
+            database.ref('requests').orderByChild('status').equalTo(status).on('value', snapshot => {
+                const requests = snapshot.val();
+                if (!requests) {
+                    requestsContainer.innerHTML = '<p>No requests found.</p>';
+                    return;
+                }
+
+                requestsContainer.innerHTML = ''; // Clear previous
+
+                Object.keys(requests).forEach(requestId => {
+                    const request = requests[requestId];
+                    const requestCard = createRequestCard(request, requestId);
+                    requestsContainer.appendChild(requestCard);
+                });
+            });
+        }
+
+        // Create request card
+        function createRequestCard(request, requestId) {
+            const card = document.createElement('div');
+            card.classList.add('col-md-4', 'mb-4');
+            let showAssignedUser = '';
+
+            if (request.status === 'assigned') {
+                const agent = agents.find(a => a.Username === request.agent_username);
+                if (agent) {
+                    showAssignedUser = `<p class="card-text">Assigned to: ${agent.Name}</p>`;
+                }
+            }
+
+            card.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">${request.part_number}</h5>
+                        <p class="card-text">Manufacturer: ${request.manufacturer}</p>
+                        <p class="card-text">Quantity: ${request.quantity}</p>
+                        <p class="card-text">Status: ${request.status}</p>
+                        ${showAssignedUser}
+                        <button class="btn btn-secondary" onclick="showRequestDetails('${requestId}')">View Details</button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderProgressCheckboxes(progress) {
+            const stages = ["received", "reviewed", "quoted", "follow_up"];
+            return stages.map((stage, i) => {
+                const disabled = i === 0 ? "" : (!progress[stages[i - 1]] ? "disabled" : "");
+                const checked = progress[stage] ? "checked" : "";
+                return `
+                        <div class="form-check">
+                            <input class="form-check-input progress-checkbox" type="checkbox" id="${stage}" ${checked} ${disabled} onchange="updateProgress('${stage}')">
+                            <label class="form-check-label" for="${stage}">${stage.charAt(0).toUpperCase() + stage.slice(1)}</label>
+                        </div>`;
+            }).join("");
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleString();
+        }
+
+        // Show modal with request details
+        function showRequestDetails(requestId) {
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = '<p>Loading details...</p>';
+
+            database.ref('requests/' + requestId).once('value', snapshot => {
+                const request = snapshot.val();
+                const progress = request.progress || {};
+
+                let details = "";
+
+                if (request.status === 'assigned' || request.status === 'completed') {
+                    const agent = agents.find(a => a.Username === request.agent_username);
+
+                    if (agent) {
+                        details = `
+                            <p><strong>Agent Name:</strong> ${agent.Name}</p>
+                            <p><strong>Email:</strong> ${agent.Email}</p>
+                            <p><strong>Assigned at:</strong> ${formatDate(request.assigned_at)}</p>
+                        `;
+                    } else {
+                        details = `<p><strong>Agent:</strong> Unknown (${request.agent_username})</p>`;
+                    }
+
+                    if (request.status === 'completed') {
+                        details += `
+                            <hr />
+                            <p><strong>Completed:</strong> ${formatDate(request.completed_at)}</p>
+                            `;
+                    }
+                } else if (request.status === 'pending') {
+                    details = `
+                        <div>
+                            <h5>Assign to Agent</h5>
+                            <select id="agentSelect" class="form-control">
+                                <option value="">Select an Agent</option>
+                                ${agents.map(agent => `<option value="${agent.Username}">${agent.Name}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-success mt-2" onclick="assignAgent('${requestId}')">Assign</button>
+                        </div>
+                    `;
+                }
+
+                details += `
+                    <hr />
+                    <p><strong>Status:</strong> ${request.status}</p>
+                    <p><strong>Part Number:</strong> ${request.part_number}</p>
+                    <p><strong>Manufacturer:</strong> ${request.manufacturer}</p>
+                    <p><strong>Quantity:</strong> ${request.quantity}</p>
+                    <p><strong>Required When:</strong> ${request.required_when}</p>
+                    <p><strong>Preferred Condition:</strong> ${request.preferred_condition}</p>
+                    <p><strong>Created at:</strong> ${formatDate(request.created_at)}</p>
+                    <hr />
+                    <p><strong>Client Name:</strong> ${request.from?.name}</p>
+                    <p><strong>Email:</strong> ${request.from?.email}</p>
+                    <p><strong>Phone:</strong> ${request.from?.phone}</p>
+                    <p><strong>Company:</strong> ${request.from?.company}</p>
+                    <p><strong>Position:</strong> ${request.from?.position}</p>
+                    <hr />
+                    <div id="progress-section">
+                        <h5>Progress Tracker</h5>
+                        ${renderProgressCheckboxes(progress)}
+                    </div>
+                    <hr />
+                    <div><strong>Uploaded Images:</strong><div id="imagePreview"></div></div>
+                `;
+
+                modalContent.innerHTML = details;
+                loadImages(request.picture_path || "");
+            });
+
+
+            document.getElementById('requestModal').style.display = 'block';
+        }
+
+        function loadImages(path) {
+            $.ajax({
+                url: '/Agent/GetImages',
+                type: 'GET',
+                data: { path: path },
+                success: function (data) {
+                    const container = document.getElementById('imagePreview');
+                    container.innerHTML = '';
+
+                    if (data.error) {
+                        container.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                        return;
+                    }
+
+                    if (data.length === 0) {
+                        container.innerHTML = "<p>No images found.</p>";
+                    } else {
+                        data.forEach(function (url) {
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.alt = 'Uploaded Image';
+                            img.style.maxWidth = '200px';
+                            img.style.margin = '10px';
+                            container.appendChild(img);
+                        });
+                    }
+                },
+                error: function (xhr, status, error) {
+                    document.getElementById('image-container').innerHTML = `<p style="color: red;">Request failed: ${error}</p>`;
+                }
+            });
+        }
+
+        // Assign an agent
+        function assignAgent(requestId) {
+            const agentUsername = document.getElementById('agentSelect').value;
+            if (agentUsername) {
+                database.ref('requests/' + requestId).update({
+                    agent_username: agentUsername,
+                    status: 'assigned',
+                    assigned_at: new Date().toISOString()
+                }, () => {
+                    alert('Request assigned successfully!');
+                    closeModal('requestModal');
+                    loadRequests();
+                });
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Load requests after DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!Array.isArray(agents)) {
+                console.warn('Agent data not found or malformed.');
+                return;
+            }
+            loadRequests();
+        });
+    </script>
+
+}
 

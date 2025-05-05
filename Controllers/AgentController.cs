@@ -30,7 +30,9 @@ namespace rqq_management_portal_asp_net.Controllers
             {
                 string username = Session["AgentUsername"] as string; // obtain stored username in session
                 string agentName = await GetUserDetails(username, "name"); // get the name using the username
+                string uName = await GetUserDetails(username, "username");
                 ViewBag.AgentName = agentName;
+                ViewBag.UName = uName;
                 return View();
             }
 
@@ -38,6 +40,11 @@ namespace rqq_management_portal_asp_net.Controllers
         }
 
         public ActionResult AssignedRequests()
+        {
+            return View();
+        }
+
+        public ActionResult ViewCompletedRequests()
         {
             return View();
         }

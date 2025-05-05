@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using rqq_management_portal_asp_net.Models;
+using Newtonsoft.Json;
 
 namespace rqq_management_portal_asp_net.Controllers
 {
@@ -33,6 +34,20 @@ namespace rqq_management_portal_asp_net.Controllers
             Session.Clear(); // clears all session data
             Session.Abandon(); // abandon the session
             return RedirectToAction("Login", "Home"); // Redirect to general login page
+        }
+
+        public async Task<ActionResult> ViewRequests()
+        {
+            var agents = await GetAgentAccountDetails();
+            ViewBag.AgentData = JsonConvert.SerializeObject(agents);
+            return View();
+        }
+
+        public async Task<ActionResult> ViewApprovals()
+        {
+            var agents = await GetAgentAccountDetails();
+            ViewBag.AgentData = JsonConvert.SerializeObject(agents);
+            return View();
         }
 
         // POST: Login - Authenticate admin credentials
@@ -193,6 +208,67 @@ namespace rqq_management_portal_asp_net.Controllers
             // return the email field from the document
             return snapshot.GetValue<string>("email");
         }
+
+        private async Task<Agent> GetAgent(string username)
+        {
+            FirestoreDb db = FirestoreDb.Create(ProjectId);
+            DocumentReference docRef = db.Collection("admin").Document(username);
+            DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
+
+            if (!snapshot.Exists)
+            {
+                return null;
+            }
+
+            // Manually mapping the document data to Agent model
+            var data = snapshot.ToDictionary();
+
+            // Return the mapped agent
+            var agent = new Agent
+            {
+                Username = data["username"].ToString(),
+                Name = data["name"].ToString(),
+                Email = data["email"].ToString()
+            };
+
+            return agent;
+        }
+
+
+        private async Task<List<Agent>> GetAgentAccountDetails()
+        {
+            FirestoreDb db = FirestoreDb.Create(ProjectId);
+
+            // Get a reference to the 'agent' collection
+            CollectionReference agentsRef = db.Collection("agent");
+
+            // Get all documents in the 'agent' collection
+            QuerySnapshot snapshot = await agentsRef.GetSnapshotAsync();
+
+            List<Agent> agents = new List<Agent>();
+
+            foreach (DocumentSnapshot docSnap in snapshot.Documents)
+            {
+                if (docSnap.Exists)
+                {
+                    // Manually mapping the document data to Agent model
+                    var data = docSnap.ToDictionary();
+
+                    var agent = new Agent
+                    {
+                        Username = data["username"].ToString(),
+                        Name = data["name"].ToString(),
+                        Email = data["email"].ToString()
+                    };
+
+                    agents.Add(agent);
+                }
+            }
+
+            return agents;
+        }
+
+
 
         private async Task<string> SignInWithEmailPassword(string email, string password)
         {
